@@ -23,6 +23,7 @@
     ]
   },
   "exclude": [
+    "bazel-out",
     "node_modules",
     "build",
     "build-esm",
