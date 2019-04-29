@@ -26,4 +26,4 @@ _global['__zone_symbol__legacyPatch'] = function() {
     propertyDescriptorLegacyPatch(api, global);
   });
 };
-})(typeof window !== 'undefined' && window || typeof self !== 'undefined' && self || global);
+})(global);

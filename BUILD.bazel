@@ -1,5 +1,5 @@
 load("@build_bazel_rules_nodejs//:defs.bzl", "npm_package")
-load("//lib:rollup.bzl", "rollup_bundle")
+load(":rollup.bzl", "rollup")
 
 exports_files([
     "tsconfig.json",
@@ -7,28 +7,24 @@ exports_files([
     "angular_license.txt",
 ])
 
-BUNDLES = {
+ES5_BUNDLES = {
     "async-test": "lib/testing/async-testing",
     "fake-async-test": "lib/testing/fake-async",
     "long-stack-trace-zone-spec": "lib/zone-spec/long-stack-trace",
     "proxy-zone-spec": "lib/zone-spec/proxy",
     "rxjs-fake-async": "lib/rxjs/rxjs-fake-async",
-    # FIXME: there is no lib/testing/sync-test
-    # "sync-test": "lib/testing/sync-test",
+    "sync-test": "lib/zone-spec/sync-test",
     "task-tracking-zone-spec": "lib/zone-spec/task-tracking",
     "wtf-zone-spec": "lib/zone-spec/wtf",
     "zone": "lib/browser/rollup-legacy-main",
     "zone-error": "lib/common/error-rewrite",
-    "zone-evergreen": "lib/browser/rollup-main",
-    "zone-evergreen-testing-bundle": "lib/browser/rollup-test-main",
     "zone-legacy": "lib/browser/browser-legacy",
     "zone-mix": "lib/mix/rollup-mix",
     "zone-node": "lib/node/rollup-main",
     "zone-patch-bluebird": "lib/extra/bluebird",
     "zone-patch-canvas": "lib/browser/canvas",
     "zone-patch-cordova": "lib/extra/cordova",
-    # FIXME: rollup can't resolve the "electron" import
-    # "zone-patch-electron": "lib/extra/electron",
+    "zone-patch-electron": "lib/extra/electron",
     "zone-patch-fetch": "lib/common/fetch",
     "zone-patch-jasmine": "lib/jasmine/jasmine",
     "zone-patch-jsonp": "lib/extra/jsonp",
@@ -47,16 +43,14 @@ BUNDLES = {
     "zone-testing-node-bundle": "lib/node/rollup-test-main",
 }
 
-NPM_BUNDLE_TYPES = ["es5_umd", "es5_umd_min"]
+ES2015_BUNDLES = {
+    "zone-evergreen": "lib/browser/rollup-main",
+    "zone-evergreen-testing-bundle": "lib/browser/rollup-test-main",
+}
 
 # the rollup bundles
-[
-    rollup_bundle(
-        name = b,
-        entry_point = BUNDLES[b],
-    )
-    for b in BUNDLES
-]
+rollup(ES5_BUNDLES)
+rollup(ES2015_BUNDLES)
 
 # the es5 filegroups
 [
@@ -65,7 +59,7 @@ NPM_BUNDLE_TYPES = ["es5_umd", "es5_umd_min"]
         srcs = [":" + b],
         output_group = "es5_umd",
     )
-    for b in BUNDLES
+    for b in ES5_BUNDLES
 ]
 
 # the es5.min filegroups
@@ -75,10 +69,30 @@ NPM_BUNDLE_TYPES = ["es5_umd", "es5_umd_min"]
         srcs = [":" + b],
         output_group = "es5_umd_min",
     )
-    for b in BUNDLES
+    for b in ES5_BUNDLES
 ]
 
-# Extract and rename each bundle to a .js and .min.js in the dist/ dir
+# the es2015 filegroups
+[
+    filegroup(
+        name = b + ".umd",
+        srcs = [":" + b],
+        output_group = "umd",
+    )
+    for b in ES2015_BUNDLES
+]
+
+# the es2015.min filegroups
+[
+    filegroup(
+        name = b + ".umd.min",
+        srcs = [":" + b],
+        output_group = "umd_min",
+    )
+    for b in ES2015_BUNDLES
+]
+
+# Extract and rename each es5 bundle to a .js and .min.js in the dist/ dir
 [
   genrule(
     name = b + "-dist",
@@ -92,7 +106,24 @@ NPM_BUNDLE_TYPES = ["es5_umd", "es5_umd_min"]
       "mv $(@D)/dist/" + b + ".min.es5umd.js $(@D)/dist/" + b + ".min.js",
     ])
   )
-  for b in BUNDLES
+  for b in ES5_BUNDLES
+]
+
+# Extract and rename each es2015 bundle to a .js and .min.js in the dist/ dir
+[
+  genrule(
+    name = b + "-dist",
+    srcs = [b + ".umd", b + ".umd.min"],
+    outs = ["dist/" + b + ".js", "dist/" + b + ".min.js"],
+    cmd = " && ".join([
+      "mkdir -p $(@D)/dist",
+      "mv $(locations //:" + b + ".umd) $(@D)/dist/",
+      "mv $(locations //:" + b + ".umd.min) $(@D)/dist/",
+      "mv $(@D)/dist/" + b + ".umd.js $(@D)/dist/" + b + ".js",
+      "mv $(@D)/dist/" + b + ".min.umd.js $(@D)/dist/" + b + ".min.js",
+    ])
+  )
+  for b in ES2015_BUNDLES
 ]
 
 npm_package(
@@ -109,5 +140,5 @@ npm_package(
         # with a -bazel.0 suffix.
         "\"version\": \"([0-9\.]+)\"": "\"version\": \"$1-bazel.0\"",
     },
-    deps = ["//lib"] + [":" + b + "-dist" for b in BUNDLES]
+    deps = ["//lib"] + [":" + b + "-dist" for b in ES5_BUNDLES] + [":" + b + "-dist" for b in ES2015_BUNDLES]
 )
