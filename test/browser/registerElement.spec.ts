@@ -33,9 +33,7 @@ describe(
           (proto as any)[fullCallbackName] = function(arg: any) {
             callbacks[callbackName](arg);
           };
-          (<any>document).registerElement('x-' + callbackName.toLowerCase(), {
-            prototype: proto
-          });
+          (<any>document).registerElement('x-' + callbackName.toLowerCase(), {prototype: proto});
         });
       });
 
