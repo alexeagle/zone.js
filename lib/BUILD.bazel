@@ -11,11 +11,6 @@ exports_files([
     "closure/zone_externs.js",
 ])
 
-filegroup(
-    name = "zone_externs",
-    srcs = ["closure/zone_externs.js"],
-)
-
 ts_deps = [
     "@npm//@types",
     "@npm//rxjs",

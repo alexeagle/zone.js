@@ -1,5 +1,5 @@
 load("@build_bazel_rules_nodejs//:defs.bzl", "npm_package")
-load(":rollup.bzl", "rollup")
+load("//lib:rollup.bzl", "ES5_BUNDLES", "ES2015_BUNDLES")
 
 exports_files([
     "tsconfig.json",
@@ -7,131 +7,79 @@ exports_files([
     "angular_license.txt",
 ])
 
-ES5_BUNDLES = {
-    "async-test": "lib/testing/async-testing",
-    "fake-async-test": "lib/testing/fake-async",
-    "long-stack-trace-zone": "lib/zone-spec/long-stack-trace",
-    "proxy": "lib/zone-spec/proxy",
-    "zone-patch-rxjs-fake-async": "lib/rxjs/rxjs-fake-async",
-    "sync-test": "lib/zone-spec/sync-test",
-    "task-tracking": "lib/zone-spec/task-tracking",
-    "wtf": "lib/zone-spec/wtf",
-    "zone": "lib/browser/rollup-legacy-main",
-    "zone-error": "lib/common/error-rewrite",
-    "zone-legacy": "lib/browser/browser-legacy",
-    "zone-mix": "lib/mix/rollup-mix",
-    "zone-node": "lib/node/rollup-main",
-    "zone-bluebird": "lib/extra/bluebird",
-    "zone-patch-canvas": "lib/browser/canvas",
-    "zone-patch-cordova": "lib/extra/cordova",
-    "zone-patch-electron": "lib/extra/electron",
-    "zone-patch-fetch": "lib/common/fetch",
-    "jasmine-patch": "lib/jasmine/jasmine",
-    "zone-patch-jsonp": "lib/extra/jsonp",
-    "webapis-media-query": "lib/browser/webapis-media-query",
-    "mocha-patch": "lib/mocha/mocha",
-    "webapis-notification": "lib/browser/webapis-notification",
-    "zone-patch-promise-test": "lib/testing/promise-testing",
-    "zone-patch-resize-observer": "lib/browser/webapis-resize-observer",
-    "webapis-rtc-peer-connection": "lib/browser/webapis-rtc-peer-connection",
-    "zone-patch-rxjs": "lib/rxjs/rxjs",
-    "webapis-shadydom": "lib/browser/shadydom",
-    "zone-patch-socket-io": "lib/extra/socket-io",
-    "zone-patch-user-media": "lib/browser/webapis-user-media",
-    "zone-testing": "lib/testing/zone-testing",
-    "zone-testing-bundle": "lib/browser/rollup-legacy-test-main",
-    "zone-testing-node-bundle": "lib/node/rollup-test-main",
-}
+# # the es5 filegroups
+# [
+#     filegroup(
+#         name = b + ".es5",
+#         srcs = [":" + b],
+#         output_group = "es5_umd",
+#     )
+#     for b in ES5_BUNDLES
+# ]
 
-ES2015_BUNDLES = {
-    "zone-evergreen": "lib/browser/rollup-main",
-    "zone-evergreen-testing-bundle": "lib/browser/rollup-test-main",
-}
+# # the es5.min filegroups
+# [
+#     filegroup(
+#         name = b + ".es5.min",
+#         srcs = [":" + b],
+#         output_group = "es5_umd_min",
+#     )
+#     for b in ES5_BUNDLES
+# ]
 
-# the rollup bundles
-rollup(ES5_BUNDLES)
-rollup(ES2015_BUNDLES)
+# # the es2015 filegroups
+# [
+#     filegroup(
+#         name = b + ".umd",
+#         srcs = [":" + b],
+#         output_group = "umd",
+#     )
+#     for b in ES2015_BUNDLES
+# ]
 
-# the es5 filegroups
-[
-    filegroup(
-        name = b + ".es5",
-        srcs = [":" + b],
-        output_group = "es5_umd",
-    )
-    for b in ES5_BUNDLES
-]
+# # the es2015.min filegroups
+# [
+#     filegroup(
+#         name = b + ".umd.min",
+#         srcs = [":" + b],
+#         output_group = "umd_min",
+#     )
+#     for b in ES2015_BUNDLES
+# ]
 
-# the es5.min filegroups
-[
-    filegroup(
-        name = b + ".es5.min",
-        srcs = [":" + b],
-        output_group = "es5_umd_min",
-    )
-    for b in ES5_BUNDLES
-]
+# # Extract and rename each es5 bundle to a .js and .min.js in the dist/ dir
+# [
+#   genrule(
+#     name = b + "-dist",
+#     srcs = [b + ".es5", b + ".es5.min"],
+#     outs = ["dist/" + b + ".js", "dist/" + b + ".min.js"],
+#     cmd = " && ".join([
+#       "mkdir -p $(@D)/dist",
+#       "mv $(locations //:" + b + ".es5) $(@D)/dist/",
+#       "mv $(locations //:" + b + ".es5.min) $(@D)/dist/",
+#       "mv $(@D)/dist/" + b + ".es5umd.js $(@D)/dist/" + b + ".js",
+#       "mv $(@D)/dist/" + b + ".min.es5umd.js $(@D)/dist/" + b + ".min.js",
+#     ])
+#   )
+#   for b in ES5_BUNDLES
+# ]
 
-# the es2015 filegroups
-[
-    filegroup(
-        name = b + ".umd",
-        srcs = [":" + b],
-        output_group = "umd",
-    )
-    for b in ES2015_BUNDLES
-]
-
-# the es2015.min filegroups
-[
-    filegroup(
-        name = b + ".umd.min",
-        srcs = [":" + b],
-        output_group = "umd_min",
-    )
-    for b in ES2015_BUNDLES
-]
-
-# Extract and rename each es5 bundle to a .js and .min.js in the dist/ dir
-[
-  genrule(
-    name = b + "-dist",
-    srcs = [b + ".es5", b + ".es5.min"],
-    outs = ["dist/" + b + ".js", "dist/" + b + ".min.js"],
-    cmd = " && ".join([
-      "mkdir -p $(@D)/dist",
-      "mv $(locations //:" + b + ".es5) $(@D)/dist/",
-      "mv $(locations //:" + b + ".es5.min) $(@D)/dist/",
-      "mv $(@D)/dist/" + b + ".es5umd.js $(@D)/dist/" + b + ".js",
-      "mv $(@D)/dist/" + b + ".min.es5umd.js $(@D)/dist/" + b + ".min.js",
-    ])
-  )
-  for b in ES5_BUNDLES
-]
-
-# Extract and rename each es2015 bundle to a .js and .min.js in the dist/ dir
-[
-  genrule(
-    name = b + "-dist",
-    srcs = [b + ".umd", b + ".umd.min"],
-    outs = ["dist/" + b + ".js", "dist/" + b + ".min.js"],
-    cmd = " && ".join([
-      "mkdir -p $(@D)/dist",
-      "mv $(locations //:" + b + ".umd) $(@D)/dist/",
-      "mv $(locations //:" + b + ".umd.min) $(@D)/dist/",
-      "mv $(@D)/dist/" + b + ".umd.js $(@D)/dist/" + b + ".js",
-      "mv $(@D)/dist/" + b + ".min.umd.js $(@D)/dist/" + b + ".min.js",
-    ])
-  )
-  for b in ES2015_BUNDLES
-]
-
-genrule(
-    name = "zone_externs",
-    srcs = ["//lib:zone_externs"],
-    outs = ["dist/zone_externs.js"],
-    cmd = "cp $< $(@D)/zone_externs.js",
-)
+# # Extract and rename each es2015 bundle to a .js and .min.js in the dist/ dir
+# [
+#   genrule(
+#     name = b + "-dist",
+#     srcs = [b + ".umd", b + ".umd.min"],
+#     outs = ["dist/" + b + ".js", "dist/" + b + ".min.js"],
+#     cmd = " && ".join([
+#       "mkdir -p $(@D)/dist",
+#       "mv $(locations //:" + b + ".umd) $(@D)/dist/",
+#       "mv $(locations //:" + b + ".umd.min) $(@D)/dist/",
+#       "mv $(@D)/dist/" + b + ".umd.js $(@D)/dist/" + b + ".js",
+#       "mv $(@D)/dist/" + b + ".min.umd.js $(@D)/dist/" + b + ".min.js",
+#     ])
+#   )
+#   for b in ES2015_BUNDLES
+# ]
 
 npm_package(
     name = "npm_package",
@@ -147,5 +95,12 @@ npm_package(
         # with a -bazel.0 suffix.
         "\"version\": \"([0-9\.]+)\"": "\"version\": \"$1-bazel.0\"",
     },
-    deps = ["//lib"] + [":" + b + "-dist" for b in ES5_BUNDLES] + [":" + b + "-dist" for b in ES2015_BUNDLES] + [":zone_externs"]
+    deps = [
+        "//dist:zone_externs",    
+        "//lib"
+    ] + [
+        "//dist:" + b[0] for b in ES5_BUNDLES.items() + ES2015_BUNDLES.items()
+    ]
+    # [":" + b + "-dist" for b in ES5_BUNDLES] +
+    #   [":" + b + "-dist" for b in ES2015_BUNDLES]
 )

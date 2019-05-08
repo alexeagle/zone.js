@@ -1,0 +1,23 @@
+load("//lib:rollup.bzl", "ES5_BUNDLES", "ES2015_BUNDLES", "rollup_bundle")
+
+package(default_visibility = ["//:__subpackages__"])
+
+# the rollup bundles
+[
+    rollup_bundle(
+        name = b[0],
+        entry_point = b[1],
+        globals = {
+            "electron": "electron",
+        },       
+    )
+    for b in ES5_BUNDLES.items() + ES2015_BUNDLES.items()
+]
+
+# copy this file from //lib to //dist
+genrule(
+    name = "zone_externs",
+    srcs = ["//lib:closure/zone_externs.js"],
+    outs = ["zone_externs.js"],
+    cmd = "cp $< $@",
+)
